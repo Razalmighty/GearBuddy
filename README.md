@@ -68,6 +68,10 @@ inject packets, or modify LuAshitacast.
   duration, and utility as independent outcomes. Alpha.8 includes four
   qualitative boundary rows and displays unverified relationships as unknown;
   the registry does not yet alter numeric gear scoring.
+- Development tooling can audit exact catalog/mechanics coverage and extract
+  static BLU parameters from a local LandSandBoat checkout as quarantined
+  comparison evidence. Comparison values never become Horizon runtime facts
+  without manual per-outcome review.
 
 This is not yet the full-game optimizer. Its purpose is to prove the runtime,
 data, validation, UI, performance, and reviewer-observability architecture before
@@ -139,6 +143,7 @@ Opening a dropdown does not rescan bags.
 
 ```text
 python tools/generate_data.py --check
+python tools/audit_data_coverage.py
 python tools/validate_repo.py
 python -m unittest discover -s tests
 texlua tests/runtime_smoke.lua

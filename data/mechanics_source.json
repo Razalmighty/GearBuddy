@@ -1,7 +1,29 @@
 {
-  "schema_version": 1,
-  "data_version": 1,
+  "schema_version": 2,
+  "data_version": 2,
   "server_scope": "HorizonXI",
+  "formula_contract": {
+    "schema_version": 1,
+    "representation": "typed_expression_tree",
+    "allowed_node_types": [
+      "constant",
+      "input",
+      "operator"
+    ],
+    "allowed_operators": [
+      "add",
+      "subtract",
+      "multiply",
+      "divide",
+      "minimum",
+      "maximum",
+      "floor",
+      "ceiling",
+      "clamp"
+    ],
+    "unknown_policy": "omit_not_zero",
+    "execution_policy": "report_only"
+  },
   "outcome_types": [
     "landing",
     "potency",

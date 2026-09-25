@@ -34,6 +34,8 @@ REQUIRED = [
     "data/policies_source.json",
     "tools/normalize_ashita_items.py",
     "tools/merge_catalog_sources.py",
+    "tools/audit_data_coverage.py",
+    "tools/extract_lsb_blue_candidates.py",
     "docs/APPROVAL_TEST_PLAN.md",
     "docs/CATALOG_PIPELINE.md",
     ".github/workflows/validate.yml",
@@ -84,6 +86,12 @@ MECHANIC_STATUSES = {
     "unknown", "not_applicable", "qualitative", "verified_numeric",
 }
 MECHANIC_DRIVER_KINDS = {"stat", "state", "model", "property"}
+FORMULA_NODE_TYPES = {"constant", "input", "operator"}
+FORMULA_OPERATORS = {
+    "add", "subtract", "multiply", "divide", "minimum", "maximum",
+    "floor", "ceiling", "clamp",
+}
+FORMULA_ROUNDING = {"none", "floor", "ceiling", "nearest"}
 CATALOG_SLOTS = {
     "Main", "Sub", "Range", "Ammo", "Head", "Body", "Hands", "Legs",
     "Feet", "Neck", "Waist", "Ear", "Ring", "Back",
@@ -299,12 +307,25 @@ def validate_mechanics(
     source_ids: set[str],
     action_ids: set[int],
 ) -> int:
-    if mechanics.get("schema_version") != 1:
+    if mechanics.get("schema_version") != 2:
         fail("Action mechanics schema version is unsupported.")
     if not isinstance(mechanics.get("data_version"), int) or mechanics["data_version"] < 1:
         fail("Action mechanics data_version is invalid.")
     if mechanics.get("server_scope") != "HorizonXI":
         fail("Action mechanics must declare HorizonXI server scope.")
+    contract = mechanics.get("formula_contract")
+    if not isinstance(contract, dict) or contract.get("schema_version") != 1:
+        fail("Action mechanics lacks a supported formula contract.")
+    if contract.get("representation") != "typed_expression_tree":
+        fail("Action mechanics formula representation is unsupported.")
+    if set(contract.get("allowed_node_types", [])) != FORMULA_NODE_TYPES:
+        fail("Action mechanics formula node contract is incomplete.")
+    if set(contract.get("allowed_operators", [])) != FORMULA_OPERATORS:
+        fail("Action mechanics operator contract is incomplete.")
+    if contract.get("unknown_policy") != "omit_not_zero":
+        fail("Action mechanics must keep unknown numbers absent.")
+    if contract.get("execution_policy") != "report_only":
+        fail("Action mechanics formulas must remain report-only.")
     outcome_types = mechanics.get("outcome_types")
     if not isinstance(outcome_types, list) or set(outcome_types) != MECHANIC_OUTCOMES:
         fail("Action mechanics must declare the complete outcome contract.")
@@ -363,8 +384,10 @@ def validate_mechanics(
             if status in {"unknown", "not_applicable"} and drivers:
                 fail(f"Unknown mechanics cannot assert drivers: {action_id}/{kind}")
             if status == "verified_numeric":
-                if row["verification"] != "Verified" or not isinstance(outcome.get("formula"), dict):
+                formula = outcome.get("formula")
+                if row["verification"] != "Verified" or not isinstance(formula, dict):
                     fail(f"Numeric mechanics require verified formula evidence: {action_id}/{kind}")
+                validate_formula(formula, action_id, kind)
             elif "formula" in outcome:
                 fail(f"Nonnumeric mechanics cannot contain a formula: {action_id}/{kind}")
             for driver in drivers:
@@ -382,6 +405,75 @@ def validate_mechanics(
         if found_types != MECHANIC_OUTCOMES:
             fail(f"Action mechanics {action_id} lacks an explicit outcome.")
     return len(rows)
+
+
+def validate_formula(formula: dict, action_id: int, outcome: str) -> None:
+    """Validate a non-executable, typed formula used only for reviewed reporting."""
+    label = f"{action_id}/{outcome}"
+    formula_id = formula.get("id")
+    if not isinstance(formula_id, str) or not formula_id.strip():
+        fail(f"Numeric mechanics formula lacks an ID: {label}")
+    output = formula.get("output")
+    if not isinstance(output, dict):
+        fail(f"Numeric mechanics formula lacks an output: {label}")
+    for key in ("key", "unit"):
+        if not isinstance(output.get(key), str) or not output[key].strip():
+            fail(f"Numeric mechanics formula output lacks {key}: {label}")
+    if formula.get("rounding") not in FORMULA_ROUNDING:
+        fail(f"Numeric mechanics formula has invalid rounding: {label}")
+    _validate_formula_node(formula.get("expression"), label, depth=0)
+    caps = formula.get("caps")
+    if caps is not None:
+        if not isinstance(caps, dict) or not caps:
+            fail(f"Numeric mechanics formula has invalid caps: {label}")
+        if set(caps) - {"minimum", "maximum"}:
+            fail(f"Numeric mechanics formula has unsupported caps: {label}")
+        for key, value in caps.items():
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                fail(f"Numeric mechanics formula cap {key} must be numeric: {label}")
+        if "minimum" in caps and "maximum" in caps and caps["minimum"] > caps["maximum"]:
+            fail(f"Numeric mechanics formula caps are reversed: {label}")
+
+
+def _validate_formula_node(node: object, label: str, depth: int) -> None:
+    if depth > 24 or not isinstance(node, dict):
+        fail(f"Numeric mechanics formula has an invalid expression: {label}")
+    node_type = node.get("type")
+    if node_type not in FORMULA_NODE_TYPES:
+        fail(f"Numeric mechanics formula has an invalid node type: {label}")
+    if node_type == "constant":
+        value = node.get("value")
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            fail(f"Numeric mechanics formula constant is not numeric: {label}")
+        if not isinstance(node.get("unit"), str) or not node["unit"].strip():
+            fail(f"Numeric mechanics formula constant lacks a unit: {label}")
+        if set(node) != {"type", "value", "unit"}:
+            fail(f"Numeric mechanics formula constant has unsupported fields: {label}")
+        return
+    if node_type == "input":
+        if not isinstance(node.get("key"), str) or not node["key"].strip():
+            fail(f"Numeric mechanics formula input lacks a key: {label}")
+        if not isinstance(node.get("unit"), str) or not node["unit"].strip():
+            fail(f"Numeric mechanics formula input lacks a unit: {label}")
+        if set(node) != {"type", "key", "unit"}:
+            fail(f"Numeric mechanics formula input has unsupported fields: {label}")
+        return
+
+    operator = node.get("operator")
+    args = node.get("args")
+    if operator not in FORMULA_OPERATORS or not isinstance(args, list):
+        fail(f"Numeric mechanics formula has an invalid operator: {label}")
+    expected = {
+        "subtract": 2, "divide": 2, "floor": 1, "ceiling": 1, "clamp": 3,
+    }.get(operator)
+    if expected is not None and len(args) != expected:
+        fail(f"Numeric mechanics formula operator has invalid arity: {label}")
+    if expected is None and len(args) < 2:
+        fail(f"Numeric mechanics formula operator has invalid arity: {label}")
+    if set(node) != {"type", "operator", "args"}:
+        fail(f"Numeric mechanics formula operator has unsupported fields: {label}")
+    for child in args:
+        _validate_formula_node(child, label, depth + 1)
 
 
 def validate_data() -> tuple[int, int, int, int, int, int]:

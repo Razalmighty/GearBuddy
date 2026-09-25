@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Added a deterministic catalog/action-mechanics coverage audit with explicit
+  review queues; reporting never promotes data or changes runtime eligibility.
+- Upgraded the action-mechanics boundary to a typed, non-executable formula
+  contract with explicit units, output, rounding, caps, bounded operators, and
+  report-only execution policy.
+- Added a LandSandBoat BLU comparison extractor that fingerprints source files,
+  captures only static parameters, rejects dynamic expressions, and marks all
+  output as non-Horizon candidate evidence requiring per-outcome review.
+
 ## 0.1.0-alpha.8
 
 - Added an in-game, read-only compatibility self-test for the required Ashita

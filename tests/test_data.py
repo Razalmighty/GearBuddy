@@ -84,7 +84,8 @@ class GearBuddyDataTests(unittest.TestCase):
             self.assertTrue(action["job_trait"])
 
     def test_action_mechanics_keep_outcomes_separate_and_fail_closed(self) -> None:
-        self.assertEqual(MECHANICS["schema_version"], 1)
+        self.assertEqual(MECHANICS["schema_version"], 2)
+        self.assertEqual(MECHANICS["formula_contract"]["execution_policy"], "report_only")
         self.assertEqual(MECHANICS["server_scope"], "HorizonXI")
         self.assertEqual(
             set(MECHANICS["outcome_types"]),

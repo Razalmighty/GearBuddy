@@ -122,6 +122,43 @@ class MechanicsValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "unknown action"):
             self.validate(payload)
 
+    def test_verified_numeric_formula_uses_typed_expression_tree(self) -> None:
+        payload = copy.deepcopy(self.mechanics)
+        row = payload["mechanics"][0]
+        row["verification"] = "Verified"
+        row["confidence"] = "high"
+        outcome = row["outcomes"][0]
+        outcome["status"] = "verified_numeric"
+        outcome["formula"] = {
+            "id": "test.magic_accuracy",
+            "output": {"key": "landing_score", "unit": "score"},
+            "rounding": "floor",
+            "expression": {
+                "type": "operator",
+                "operator": "add",
+                "args": [
+                    {"type": "input", "key": "magic_accuracy", "unit": "point"},
+                    {"type": "constant", "value": 10, "unit": "point"},
+                ],
+            },
+        }
+        self.assertEqual(self.validate(payload), 4)
+
+    def test_numeric_formula_rejects_free_form_or_unknown_math(self) -> None:
+        payload = copy.deepcopy(self.mechanics)
+        row = payload["mechanics"][0]
+        row["verification"] = "Verified"
+        outcome = row["outcomes"][0]
+        outcome["status"] = "verified_numeric"
+        outcome["formula"] = {
+            "id": "bad.free_form",
+            "output": {"key": "landing_score", "unit": "score"},
+            "rounding": "none",
+            "expression": {"type": "lua", "code": "return 999"},
+        }
+        with self.assertRaisesRegex(AssertionError, "invalid node type"):
+            self.validate(payload)
+
 
 if __name__ == "__main__":
     unittest.main()

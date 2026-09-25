@@ -20,6 +20,9 @@ Expand the Horizon catalog, hidden effects, level-sync legality, augment variant
 set bonuses, target families, and patch provenance. Add exact solving where the
 candidate space permits and validated dominance pruning elsewhere.
 Expand the action-mechanics registry only from reviewed per-outcome evidence.
+The bulk client normalizer, Horizon override gate, coverage audit, typed formula
+contract, and quarantined comparison extractor are in place; full roster import
+and Horizon review remain outstanding.
 
 ## Phase 3 — all live jobs
 

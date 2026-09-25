@@ -29,6 +29,60 @@ local allowedDriverKind = {
     property = true,
 };
 
+local allowedFormulaNode = { constant = true, input = true, operator = true };
+local allowedFormulaOperator = {
+    add = true, subtract = true, multiply = true, divide = true,
+    minimum = true, maximum = true, floor = true, ceiling = true, clamp = true,
+};
+local allowedRounding = { none = true, floor = true, ceiling = true, nearest = true };
+
+local function validFormulaNode(node, depth)
+    depth = depth or 0;
+    if depth > 24 or type(node) ~= "table" or not allowedFormulaNode[node.type] then
+        return false;
+    end
+    if node.type == "constant" then
+        return type(node.value) == "number" and type(node.unit) == "string" and node.unit ~= "";
+    end
+    if node.type == "input" then
+        return type(node.key) == "string" and node.key ~= ""
+            and type(node.unit) == "string" and node.unit ~= "";
+    end
+    if not allowedFormulaOperator[node.operator] or type(node.args) ~= "table" then
+        return false;
+    end
+    local count = #node.args;
+    if (node.operator == "subtract" or node.operator == "divide") and count ~= 2 then
+        return false;
+    end
+    if (node.operator == "floor" or node.operator == "ceiling") and count ~= 1 then
+        return false;
+    end
+    if node.operator == "clamp" and count ~= 3 then
+        return false;
+    end
+    if (node.operator == "add" or node.operator == "multiply"
+        or node.operator == "minimum" or node.operator == "maximum") and count < 2 then
+        return false;
+    end
+    for _,child in ipairs(node.args) do
+        if not validFormulaNode(child, depth + 1) then
+            return false;
+        end
+    end
+    return true;
+end
+
+local function validFormula(formula)
+    return type(formula) == "table"
+        and type(formula.id) == "string" and formula.id ~= ""
+        and type(formula.output) == "table"
+        and type(formula.output.key) == "string" and formula.output.key ~= ""
+        and type(formula.output.unit) == "string" and formula.output.unit ~= ""
+        and allowedRounding[formula.rounding]
+        and validFormulaNode(formula.expression, 0);
+end
+
 local function copy(value)
     if type(value) ~= "table" then
         return value;
@@ -86,7 +140,7 @@ local function normalize(row)
         end
         if outcome.status == "verified_numeric" then
             if row.verification ~= "Verified"
-                or type(outcome.formula) ~= "table" then
+                or not validFormula(outcome.formula) then
                 return nil, "unverified_numeric_formula";
             end
         elseif outcome.formula ~= nil then
@@ -129,10 +183,16 @@ function actionMechanics.new(data, diagnostics)
         by_action = {},
         rejected = {},
     }, actionMechanics);
-    if data.schema_version ~= 1
+    local contract = data.formula_contract;
+    if data.schema_version ~= 2
         or type(data.data_version) ~= "number"
         or data.data_version < 1
-        or data.server_scope ~= "HorizonXI" then
+        or data.server_scope ~= "HorizonXI"
+        or type(contract) ~= "table"
+        or contract.schema_version ~= 1
+        or contract.representation ~= "typed_expression_tree"
+        or contract.unknown_policy ~= "omit_not_zero"
+        or contract.execution_policy ~= "report_only" then
         table.insert(instance.rejected, {
             action_id = nil,
             reason = "invalid_registry_header",

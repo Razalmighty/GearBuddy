@@ -77,15 +77,21 @@ An outcome may be:
 
 | Status | Runtime meaning |
 | --- | --- |
-| `verified_numeric` | A reviewed formula may be represented; none are active in alpha.8 |
+| `verified_numeric` | A reviewed formula may be represented; none are active yet |
 | `qualitative` | Directional evidence may be shown but cannot become a number |
 | `unknown` | No driver or formula may be asserted |
 | `not_applicable` | The action has no such outcome; no driver or formula may be asserted |
 
+Numeric formulas use a bounded typed expression tree with explicit inputs,
+constants, operators, units, output, rounding, and optional caps. Free-form Lua,
+text expressions, and unknown operators are rejected. Formula records remain
+report-only until a later reviewed runtime explicitly enables them; their
+presence cannot silently alter optimizer scores.
+
 The validator rejects unknown outcomes with drivers, qualitative drivers hiding
 numeric weights, incomplete outcome sets, duplicate action rows, missing source
-chains, and formulas on nonnumeric evidence. Alpha.7's four representative BLU
-rows establish this contract but do not affect optimizer scores.
+chains, and formulas on nonnumeric evidence. The four representative BLU rows
+establish this contract but do not affect optimizer scores.
 
 Upgrade candidates use the same confidence rule. Only `Verified` catalog rows
 with legal job, effective-level, compatible slot array, and weapon-policy state
@@ -93,3 +99,17 @@ can appear in the
 recommendation list. Items already present in the ownership index are excluded;
 unknown or partial rows remain visible to reviewers but cannot win. Active
 manual pins are fixed and cannot appear as proposed replacement slots.
+
+## Coverage audit
+
+`tools/audit_data_coverage.py` produces a deterministic snapshot of catalog,
+effect, action, and per-outcome mechanics coverage. Its review queues identify
+unverified items and verified actions that still lack mechanics records. The
+report is descriptive only: running it never promotes a row or changes runtime
+eligibility.
+
+`tools/extract_lsb_blue_candidates.py` may extract static BLU parameters from a
+local LandSandBoat checkout into a separate comparison file. The output is
+explicitly scoped as non-Horizon evidence and is deliberately incompatible with
+the runtime registry. Every value requires manual, per-outcome Horizon review;
+dynamic expressions are listed as ignored rather than evaluated.
