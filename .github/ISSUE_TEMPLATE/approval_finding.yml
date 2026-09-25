@@ -1,0 +1,36 @@
+name: Horizon approval finding
+description: Record a reviewer observation against an exact release
+title: "[Approval] "
+labels: [approval-review]
+body:
+  - type: input
+    id: tag
+    attributes:
+      label: Tested tag and ZIP SHA-256
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Finding area
+      options:
+        - Read-only safety
+        - Self-test compatibility
+        - Performance
+        - Inventory
+        - Resolver
+        - Force Swap
+        - Action mechanics
+        - Persistence
+        - UI
+        - Data
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Observation and evidence
+      description: Include `/gb selftest verbose`, `/gb report`, and the smallest reproducible sequence when applicable.
+    validations:
+      required: true

@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "resource_schema": "Ashita v4 IItem",
+  "resource_version": "test-fixture",
+  "language": "English",
+  "source_id": "TEST-ASHITA",
+  "extracted_on": "2026-09-25",
+  "items": [
+    {
+      "Id": 9002,
+      "Flags": 2048,
+      "Level": 40,
+      "Slots": 24576,
+      "Jobs": 65536,
+      "Name": "Fixture Ring",
+      "Description": "A test ring description.",
+      "Type": 4,
+      "ResourceId": 9002,
+      "ItemLevel": 0,
+      "SuperiorLevel": 0,
+      "Damage": 0,
+      "Delay": 0,
+      "DPS": 0,
+      "Skill": 0
+    },
+    {
+      "Id": 9001,
+      "Flags": 2048,
+      "Level": 73,
+      "Slots": 3,
+      "Jobs": 65538,
+      "Name": "Fixture Blade",
+      "Description": "DMG:32 Delay:229",
+      "Type": 4,
+      "ResourceId": 9001,
+      "ItemLevel": 0,
+      "SuperiorLevel": 0,
+      "Damage": 32,
+      "Delay": 229,
+      "DPS": 1397,
+      "Skill": 3
+    },
+    {
+      "Id": 9003,
+      "Flags": 0,
+      "Level": 1,
+      "Slots": 16,
+      "Jobs": 65536,
+      "Name": "Not Equippable",
+      "Description": "Filtered by the equippable flag.",
+      "Damage": 0,
+      "Delay": 0
+    },
+    {
+      "Id": 9004,
+      "Flags": 2048,
+      "Level": 1,
+      "Slots": 0,
+      "Jobs": 65536,
+      "Name": "No Slot",
+      "Description": "Filtered because no equipment slot is set.",
+      "Damage": 0,
+      "Delay": 0
+    }
+  ]
+}

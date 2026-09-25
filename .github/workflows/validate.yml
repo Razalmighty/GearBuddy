@@ -1,0 +1,45 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Lua 5.1 runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes lua5.1
+      - run: python tools/generate_data.py --check
+      - run: python tools/validate_repo.py
+      - run: python -m unittest discover -s tests
+      - name: Check Lua syntax
+        run: lua5.1 tools/check_lua_syntax.lua $(find . -name '*.lua' -type f -not -path './dist/*' | sort)
+      - name: Run Lua runtime smoke test
+        run: lua5.1 tests/runtime_smoke.lua
+      - name: Build and verify deterministic release
+        run: |
+          python tools/build_release.py
+          python tools/verify_release.py "dist/GearBuddy-v$(cat VERSION)-read-only.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GearBuddy-read-only-${{ github.sha }}
+          path: |
+            dist/*.zip
+            dist/*.sha256
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,37 @@
+name: Runtime bug
+description: Report a reproducible GearBuddy runtime problem
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: GearBuddy version
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Ashita version, job, level, and zone
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Reviewer output
+      description: Paste `/gb selftest verbose`, `/gb report`, and relevant `/gb diag` output.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety impact
+      options:
+        - label: The issue caused or appeared to cause an equipment or action packet.
+        - label: The issue caused unexpected repeated inventory scans while idle.
