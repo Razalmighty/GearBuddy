@@ -780,9 +780,10 @@ local unknownMechanics = mechanicsRegistry:resolve(999999);
 assert(unknownMechanics.known == false);
 assert(unknownMechanics.by_type.potency.status == "unknown");
 local rejectedMechanics = ActionMechanics.new({
-    schema_version = 1,
+    schema_version = mechanicsData.schema_version,
     data_version = 1,
     server_scope = "HorizonXI",
+    formula_contract = mechanicsData.formula_contract,
     mechanics = {
         {
             action_id = 9999,
