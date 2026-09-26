@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "data_version": 1,
+  "credit_policy": "Credit only public names or approved collective labels; never store Discord handles, message IDs, or private contact details without contributor approval.",
+  "contributors": [
+    {
+      "id": "C001",
+      "display_name": "Razalmighty",
+      "type": "individual",
+      "roles": ["project_owner", "source_submitter", "playtest_coordinator"],
+      "public_credit": true,
+      "notes": "Submitted the original BLU research matrix and project Lua evidence. Submission does not imply authorship of every community-derived value."
+    },
+    {
+      "id": "C002",
+      "display_name": "GearBuddy maintainers",
+      "type": "project",
+      "roles": ["normalization", "validation", "conflict_tracking"],
+      "public_credit": true,
+      "notes": "Transforms evidence into versioned records and preserves uncertainty; does not originate HorizonXI mechanics."
+    },
+    {
+      "id": "C003",
+      "display_name": "HorizonXI community researchers",
+      "type": "community_collective",
+      "roles": ["future_validation_source"],
+      "public_credit": false,
+      "notes": "Reserved collective label. No Discord-derived claim may use this contributor until authorized evidence is received and reviewed."
+    }
+  ]
+}

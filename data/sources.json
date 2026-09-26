@@ -16,6 +16,7 @@
     {"id": "S013", "type": "Official community wiki", "title": "Category: Blue Magic", "url": "https://horizonffxi.wiki/Category:Blue_Magic", "scope": "Canonical Horizon BLU spell availability through level 75, spell type, traits, and properties", "accessed": "2026-09-25"},
     {"id": "S014", "type": "Official community wiki", "title": "Auto Refresh", "url": "https://horizonffxi.wiki/Auto_Refresh", "scope": "Current Blue Magic set-point cost and trait weight for Plasma Charge", "accessed": "2026-09-25"},
     {"id": "S015", "type": "Official community wiki", "title": "Diffusion", "url": "https://horizonffxi.wiki/Diffusion", "scope": "Current Horizon MP cost and duration for self-target Blue Magic including Plasma Charge", "accessed": "2026-09-25"},
-    {"id": "S016", "type": "Official community wiki (legacy)", "title": "Blue Magic Spell List", "url": "https://horizonffxi.wiki/Blue_Magic_Spell_List", "scope": "Legacy duplicate spell table retained only for conflict and exclusion review; page is marked for deletion as not consistently updated", "accessed": "2026-09-25"}
+    {"id": "S016", "type": "Official community wiki (legacy)", "title": "Blue Magic Spell List", "url": "https://horizonffxi.wiki/Blue_Magic_Spell_List", "scope": "Legacy duplicate spell table retained only for conflict and exclusion review; page is marked for deletion as not consistently updated", "accessed": "2026-09-25"},
+    {"id": "S017", "type": "User project evidence", "title": "BLU_L60_CHAIN_BURST_REWORK.lua", "url": null, "scope": "Recovered Chat 1 BLU multiplier records, gear-stat comments, and action-routing evidence; candidate evidence only", "accessed": "2026-09-25"}
   ]
 }

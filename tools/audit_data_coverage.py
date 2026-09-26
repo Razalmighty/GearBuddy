@@ -21,11 +21,38 @@ def sorted_counts(values: list[str]) -> dict[str, int]:
     return dict(sorted(Counter(values).items()))
 
 
+def find_candidate_conflicts(
+    rows: list[dict[str, Any]], subject_key: str
+) -> list[dict[str, Any]]:
+    """Return fields with two or more distinct source assertions."""
+    assertions: dict[tuple[str, str], dict[str, list[str]]] = {}
+    for row in rows:
+        subject = str(row[subject_key]).strip().lower()
+        for field, value in row.get("values", {}).items():
+            key = (subject, field)
+            rendered = json.dumps(value, sort_keys=True, separators=(",", ":"))
+            assertions.setdefault(key, {}).setdefault(rendered, []).append(
+                row["evidence_id"]
+            )
+    return [
+        {
+            "subject": subject,
+            "field": field,
+            "assertions": values,
+        }
+        for (subject, field), values in sorted(assertions.items())
+        if len(values) > 1
+    ]
+
+
 def build_report() -> dict[str, Any]:
     catalog = load("catalog_source.json")
     effects = load("effects_source.json")
     actions = load("actions_source.json")
     mechanics = load("mechanics_source.json")
+    contributors = load("contributors_source.json")
+    equipment_candidates = load("equipment_candidates_source.json")
+    mechanics_candidates = load("mechanics_candidates_source.json")
 
     items = catalog["items"]
     action_rows = actions["actions"]
@@ -64,6 +91,13 @@ def build_report() -> dict[str, Any]:
         for row in items
         if row["verification"] != "Verified"
     ]
+
+    gear_conflicts = find_candidate_conflicts(
+        equipment_candidates["candidates"], "name"
+    )
+    mechanics_conflicts = find_candidate_conflicts(
+        mechanics_candidates["evidence_sets"], "action_name"
+    )
 
     return {
         "report_schema_version": 1,
@@ -115,6 +149,35 @@ def build_report() -> dict[str, Any]:
             "verified_numeric_outcomes": numeric_outcomes,
             "review_queue": missing_mechanics,
         },
+        "evidence": {
+            "contributors": len(contributors["contributors"]),
+            "public_contributors": sum(
+                row["public_credit"] for row in contributors["contributors"]
+            ),
+            "equipment_candidate_sets": len(equipment_candidates["candidates"]),
+            "equipment_candidate_fields": sum(
+                len(row["values"]) for row in equipment_candidates["candidates"]
+            ),
+            "mechanics_candidate_sets": len(mechanics_candidates["evidence_sets"]),
+            "mechanics_candidate_fields": sum(
+                len(row["values"]) for row in mechanics_candidates["evidence_sets"]
+            ),
+            "global_mechanics_claims": len(mechanics_candidates["global_claims"]),
+            "matched_action_sets": sum(
+                row["registry_status"] != "unmatched"
+                for row in mechanics_candidates["evidence_sets"]
+            ),
+            "unmatched_action_sets": [
+                {"evidence_id": row["evidence_id"], "name": row["action_name"]}
+                for row in mechanics_candidates["evidence_sets"]
+                if row["registry_status"] == "unmatched"
+            ],
+            "conflicts": {
+                "equipment": gear_conflicts,
+                "mechanics": mechanics_conflicts,
+            },
+            "runtime_eligible_candidate_sets": 0,
+        },
     }
 
 
@@ -122,6 +185,7 @@ def summary(report: dict[str, Any]) -> str:
     catalog = report["catalog"]
     actions = report["actions"]
     mechanics = report["mechanics"]
+    evidence = report["evidence"]
     coverage = mechanics["verified_action_coverage"]
     return "\n".join((
         f"Catalog: {catalog['optimizer_eligible_items']}/{catalog['total_items']} optimizer-eligible items",
@@ -129,6 +193,9 @@ def summary(report: dict[str, Any]) -> str:
         f"Actions: {actions['verification'].get('Verified', 0)}/{actions['total_actions']} verified",
         f"Mechanics: {coverage['covered']}/{coverage['total']} verified actions registered",
         f"Numeric mechanics outcomes: {mechanics['verified_numeric_outcomes']}",
+        f"Evidence: {evidence['equipment_candidate_sets']} gear / "
+        f"{evidence['mechanics_candidate_sets']} action candidate sets",
+        f"Contributors: {evidence['contributors']} records; candidate runtime eligibility: 0",
     ))
 
 

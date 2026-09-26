@@ -19,6 +19,10 @@ class CoverageAuditTests(unittest.TestCase):
         )
         self.assertEqual(report["mechanics"]["verified_numeric_outcomes"], 0)
         self.assertEqual(len(report["mechanics"]["review_queue"]), 102)
+        self.assertEqual(report["evidence"]["equipment_candidate_sets"], 7)
+        self.assertEqual(report["evidence"]["mechanics_candidate_sets"], 13)
+        self.assertEqual(report["evidence"]["global_mechanics_claims"], 3)
+        self.assertEqual(report["evidence"]["runtime_eligible_candidate_sets"], 0)
 
     def test_coverage_report_preserves_per_outcome_status(self) -> None:
         report = build_report()

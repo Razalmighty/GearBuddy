@@ -6,6 +6,13 @@ inventory, applies verified job/level/slot constraints, resolves a deterministic
 preview set, and explains the result. It does not equip gear, intercept actions,
 inject packets, or modify LuAshitacast.
 
+GearBuddy's calculations and recommendations are based on the best available
+HorizonXI documentation, community research, player testing, and established
+FFXI references. The evidence is versioned and open to correction as mechanics
+are better understood or changed. Unless a value is explicitly identified as
+official HorizonXI data, it should be treated as a community-informed estimate,
+not an official server guarantee.
+
 ## Approval-alpha scope
 
 - BLU proof of concept: engaged, physical magic, magical magic, debuff, drain,
@@ -72,6 +79,11 @@ inject packets, or modify LuAshitacast.
   static BLU parameters from a local LandSandBoat checkout as quarantined
   comparison evidence. Comparison values never become Horizon runtime facts
   without manual per-outcome review.
+- Quarantined evidence registries now preserve source-specific gear stats, BLU
+  multipliers, formula claims, conflicts, and contributor credit separately
+  from runtime truth. The initial recovered batch contains seven gear evidence
+  sets, thirteen spell records, and three global mechanics claims; none can
+  affect optimization until promoted field by field.
 
 This is not yet the full-game optimizer. Its purpose is to prove the runtime,
 data, validation, UI, performance, and reviewer-observability architecture before
@@ -135,6 +147,7 @@ Opening a dropdown does not rescan bags.
 - [Architecture](docs/ARCHITECTURE.md)
 - [Data and hidden-effect policy](docs/DATA_POLICY.md)
 - [Equipment catalog ingestion](docs/CATALOG_PIPELINE.md)
+- [Evidence ledger and contributor credit](docs/EVIDENCE_LEDGER.md)
 - [Horizon approval test plan](docs/APPROVAL_TEST_PLAN.md)
 - [Publication checklist](docs/PUBLISHING.md)
 - [Roadmap](docs/ROADMAP.md)

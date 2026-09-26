@@ -113,3 +113,16 @@ local LandSandBoat checkout into a separate comparison file. The output is
 explicitly scoped as non-Horizon evidence and is deliberately incompatible with
 the runtime registry. Every value requires manual, per-outcome Horizon review;
 dynamic expressions are listed as ignored rather than evaluated.
+
+## Candidate evidence and contributors
+
+Unreviewed gear stats and formula candidates live in separate quarantined
+registries. They never generate runtime Lua and never enter the resolver.
+`data/equipment_candidates_source.json` and
+`data/mechanics_candidates_source.json` retain source-specific values so later
+Horizon documentation, controlled testing, or authorized community exports can
+corroborate or conflict with individual fields. `data/contributors_source.json`
+tracks approved credit labels without storing private contact information.
+
+The coverage audit reports candidate counts, unresolved action identities, and
+field conflicts. See [Evidence ledger and contributor credit](EVIDENCE_LEDGER.md).

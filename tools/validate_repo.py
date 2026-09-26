@@ -31,6 +31,9 @@ REQUIRED = [
     "data/effects_source.json",
     "data/actions_source.json",
     "data/mechanics_source.json",
+    "data/mechanics_candidates_source.json",
+    "data/equipment_candidates_source.json",
+    "data/contributors_source.json",
     "data/policies_source.json",
     "tools/normalize_ashita_items.py",
     "tools/merge_catalog_sources.py",
@@ -38,6 +41,7 @@ REQUIRED = [
     "tools/extract_lsb_blue_candidates.py",
     "docs/APPROVAL_TEST_PLAN.md",
     "docs/CATALOG_PIPELINE.md",
+    "docs/EVIDENCE_LEDGER.md",
     ".github/workflows/validate.yml",
     ".github/ISSUE_TEMPLATE/bug_report.yml",
     ".github/ISSUE_TEMPLATE/approval_finding.yml",
@@ -100,6 +104,14 @@ CATALOG_JOBS = {
     "WAR", "MNK", "WHM", "BLM", "RDM", "THF", "PLD", "DRK",
     "BST", "BRD", "RNG", "SAM", "NIN", "DRG", "SMN", "BLU",
     "COR", "PUP", "DNC", "SCH", "GEO", "RUN",
+}
+EVIDENCE_STATUSES = {"candidate", "corroborated", "conflicting", "rejected"}
+CONTRIBUTOR_TYPES = {"individual", "project", "community_collective", "organization"}
+MECHANICS_REGISTRY_STATES = {"matched_verified", "matched_pending", "unmatched"}
+MECHANICS_CANDIDATE_FIELDS = {
+    "hit_count", "multi_hit", "damage_type", "element", "wsc", "ftp",
+    "base_damage_cap", "base_value", "dstat_threshold", "dstat_multipliers",
+    "additional_effect_uses_magic_accuracy",
 }
 
 
@@ -476,13 +488,188 @@ def _validate_formula_node(node: object, label: str, depth: int) -> None:
         _validate_formula_node(child, label, depth + 1)
 
 
-def validate_data() -> tuple[int, int, int, int, int, int]:
+def validate_evidence(
+    contributors: dict,
+    equipment_candidates: dict,
+    mechanics_candidates: dict,
+    source_ids: set[str],
+    catalog_by_id: dict[int, dict],
+    actions_by_id: dict[int, dict],
+) -> tuple[int, int, int]:
+    if contributors.get("schema_version") != 1:
+        fail("Contributor schema version is unsupported.")
+    if not isinstance(contributors.get("credit_policy"), str) or not contributors["credit_policy"].strip():
+        fail("Contributor registry lacks a credit/privacy policy.")
+    contributor_ids: set[str] = set()
+    for row in contributors.get("contributors", []):
+        contributor_id = row.get("id")
+        if not isinstance(contributor_id, str) or not contributor_id.startswith("C"):
+            fail("Contributor registry has an invalid ID.")
+        if contributor_id in contributor_ids:
+            fail(f"Duplicate contributor ID: {contributor_id}")
+        contributor_ids.add(contributor_id)
+        if row.get("type") not in CONTRIBUTOR_TYPES:
+            fail(f"Contributor {contributor_id} has an invalid type.")
+        if not isinstance(row.get("display_name"), str) or not row["display_name"].strip():
+            fail(f"Contributor {contributor_id} lacks a display name.")
+        if not isinstance(row.get("roles"), list) or not row["roles"]:
+            fail(f"Contributor {contributor_id} lacks roles.")
+        if len(row["roles"]) != len(set(row["roles"])):
+            fail(f"Contributor {contributor_id} repeats a role.")
+        if not isinstance(row.get("public_credit"), bool):
+            fail(f"Contributor {contributor_id} lacks a public-credit decision.")
+        if not isinstance(row.get("notes"), str) or not row["notes"].strip():
+            fail(f"Contributor {contributor_id} lacks notes.")
+
+    def validate_common(row: dict, label: str) -> None:
+        if row.get("evidence_status") not in EVIDENCE_STATUSES:
+            fail(f"{label} has an invalid evidence status.")
+        if row.get("confidence") not in CONFIDENCE_LEVELS - {"unknown"}:
+            fail(f"{label} has an invalid confidence level.")
+        sources = row.get("source_ids")
+        if not isinstance(sources, list) or not sources or len(sources) != len(set(sources)):
+            fail(f"{label} lacks a unique evidence chain.")
+        if any(source_id not in source_ids for source_id in sources):
+            fail(f"{label} references an unknown source.")
+        credits = row.get("contributor_ids")
+        if not isinstance(credits, list) or not credits or len(credits) != len(set(credits)):
+            fail(f"{label} lacks a unique contributor chain.")
+        if any(contributor_id not in contributor_ids for contributor_id in credits):
+            fail(f"{label} references an unknown contributor.")
+        if not isinstance(row.get("last_reviewed"), str) or not row["last_reviewed"].strip():
+            fail(f"{label} lacks a review date.")
+        if not isinstance(row.get("notes"), str) or not row["notes"].strip():
+            fail(f"{label} lacks scope notes.")
+
+    if equipment_candidates.get("schema_version") != 1 \
+        or equipment_candidates.get("runtime_policy") != "quarantined_never_score":
+        fail("Equipment candidate registry must remain quarantined.")
+    equipment_evidence_ids: set[str] = set()
+    for row in equipment_candidates.get("candidates", []):
+        evidence_id = row.get("evidence_id")
+        if not isinstance(evidence_id, str) or not evidence_id.startswith("GEAR-E"):
+            fail("Equipment candidate has an invalid evidence ID.")
+        if evidence_id in equipment_evidence_ids:
+            fail(f"Duplicate equipment evidence ID: {evidence_id}")
+        equipment_evidence_ids.add(evidence_id)
+        validate_common(row, f"Equipment evidence {evidence_id}")
+        if not isinstance(row.get("name"), str) or not row["name"].strip():
+            fail(f"Equipment evidence {evidence_id} lacks a name.")
+        if row.get("slot") not in CATALOG_SLOTS:
+            fail(f"Equipment evidence {evidence_id} has an invalid slot.")
+        aliases = row.get("aliases")
+        if not isinstance(aliases, list) or len(aliases) != len(set(aliases)):
+            fail(f"Equipment evidence {evidence_id} has invalid aliases.")
+        values = row.get("values")
+        if not isinstance(values, dict) or not values:
+            fail(f"Equipment evidence {evidence_id} has no candidate values.")
+        for key, value in values.items():
+            if not isinstance(key, str) or not key.strip():
+                fail(f"Equipment evidence {evidence_id} has an invalid field.")
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                fail(f"Equipment evidence {evidence_id}/{key} must be numeric.")
+        item_id = row.get("item_id")
+        if item_id is not None:
+            if isinstance(item_id, bool) or not isinstance(item_id, int) or item_id not in catalog_by_id:
+                fail(f"Equipment evidence {evidence_id} references an unknown catalog ID.")
+            if catalog_by_id[item_id]["name"] != row["name"]:
+                fail(f"Equipment evidence {evidence_id} disagrees with the catalog name.")
+
+    if mechanics_candidates.get("schema_version") != 1 \
+        or mechanics_candidates.get("runtime_policy") != "quarantined_report_only":
+        fail("Mechanics candidate registry must remain report-only.")
+    mechanic_evidence_ids: set[str] = set()
+    for row in mechanics_candidates.get("evidence_sets", []):
+        evidence_id = row.get("evidence_id")
+        if not isinstance(evidence_id, str) or not evidence_id.startswith("BLU-E"):
+            fail("Mechanics candidate has an invalid evidence ID.")
+        if evidence_id in mechanic_evidence_ids:
+            fail(f"Duplicate mechanics evidence ID: {evidence_id}")
+        mechanic_evidence_ids.add(evidence_id)
+        validate_common(row, f"Mechanics evidence {evidence_id}")
+        status = row.get("registry_status")
+        if status not in MECHANICS_REGISTRY_STATES:
+            fail(f"Mechanics evidence {evidence_id} has an invalid registry status.")
+        action_id = row.get("action_id")
+        action_name = row.get("action_name")
+        if not isinstance(action_name, str) or not action_name.strip():
+            fail(f"Mechanics evidence {evidence_id} lacks an action name.")
+        if status == "unmatched":
+            if action_id is not None:
+                fail(f"Unmatched mechanics evidence {evidence_id} cannot assert an action ID.")
+        else:
+            if isinstance(action_id, bool) or not isinstance(action_id, int) or action_id not in actions_by_id:
+                fail(f"Mechanics evidence {evidence_id} references an unknown action.")
+            action = actions_by_id[action_id]
+            if action["name"] != action_name:
+                fail(f"Mechanics evidence {evidence_id} disagrees with the action name.")
+            expected = "matched_verified" if action["verification"] == "Verified" else "matched_pending"
+            if status != expected:
+                fail(f"Mechanics evidence {evidence_id} has a stale registry status.")
+        values = row.get("values")
+        if not isinstance(values, dict) or not values:
+            fail(f"Mechanics evidence {evidence_id} has no candidate values.")
+        if set(values) - MECHANICS_CANDIDATE_FIELDS:
+            fail(f"Mechanics evidence {evidence_id} has an unsupported candidate field.")
+        wsc = values.get("wsc")
+        if wsc is not None:
+            if not isinstance(wsc, dict) or not wsc:
+                fail(f"Mechanics evidence {evidence_id} has invalid WSC data.")
+            for stat, coefficient in wsc.items():
+                if stat not in ACTION_STAT_NAMES:
+                    fail(f"Mechanics evidence {evidence_id} has an invalid WSC stat.")
+                if isinstance(coefficient, bool) or not isinstance(coefficient, (int, float)) or coefficient < 0:
+                    fail(f"Mechanics evidence {evidence_id} has an invalid WSC coefficient.")
+        for list_field in ("ftp", "dstat_multipliers"):
+            if list_field in values:
+                numbers = values[list_field]
+                if not isinstance(numbers, list) or not numbers or any(
+                    isinstance(value, bool) or not isinstance(value, (int, float))
+                    for value in numbers
+                ):
+                    fail(f"Mechanics evidence {evidence_id} has invalid {list_field} data.")
+        for numeric_field in ("hit_count", "base_damage_cap", "base_value", "dstat_threshold"):
+            if numeric_field in values and (
+                isinstance(values[numeric_field], bool)
+                or not isinstance(values[numeric_field], (int, float))
+                or values[numeric_field] < 0
+            ):
+                fail(f"Mechanics evidence {evidence_id} has invalid {numeric_field} data.")
+        for boolean_field in ("multi_hit", "additional_effect_uses_magic_accuracy"):
+            if boolean_field in values and not isinstance(values[boolean_field], bool):
+                fail(f"Mechanics evidence {evidence_id} has invalid {boolean_field} data.")
+        for text_field in ("damage_type", "element"):
+            if text_field in values and (
+                not isinstance(values[text_field], str) or not values[text_field].strip()
+            ):
+                fail(f"Mechanics evidence {evidence_id} has invalid {text_field} data.")
+
+    for row in mechanics_candidates.get("global_claims", []):
+        evidence_id = row.get("evidence_id")
+        if not isinstance(evidence_id, str) or not evidence_id.startswith("BLU-G"):
+            fail("Global mechanics candidate has an invalid evidence ID.")
+        if evidence_id in mechanic_evidence_ids:
+            fail(f"Duplicate mechanics evidence ID: {evidence_id}")
+        mechanic_evidence_ids.add(evidence_id)
+        validate_common(row, f"Global mechanics evidence {evidence_id}")
+        if not isinstance(row.get("field"), str) or not row["field"].strip():
+            fail(f"Global mechanics evidence {evidence_id} lacks a field.")
+        if "value" not in row or not isinstance(row.get("unit"), str) or not row["unit"].strip():
+            fail(f"Global mechanics evidence {evidence_id} lacks a typed value.")
+
+    return len(contributor_ids), len(equipment_evidence_ids), len(mechanic_evidence_ids)
+
+
+def validate_data() -> tuple[int, int, int, int, int, int, int, int, int]:
     catalog = load("catalog_source.json")
     effects = load("effects_source.json")
     actions = load("actions_source.json")
     mechanics = load("mechanics_source.json")
     sources = load("sources.json")
     policies = load("policies_source.json")
+    contributors = load("contributors_source.json")
+    equipment_candidates = load("equipment_candidates_source.json")
+    mechanics_candidates = load("mechanics_candidates_source.json")
 
     if catalog.get("schema_version") != 2:
         fail("Catalog schema version is unsupported.")
@@ -574,9 +761,18 @@ def validate_data() -> tuple[int, int, int, int, int, int]:
         source_ids,
         {row["id"] for row in actions["actions"]},
     )
+    contributor_count, equipment_evidence_count, mechanics_evidence_count = validate_evidence(
+        contributors,
+        equipment_candidates,
+        mechanics_candidates,
+        source_ids,
+        {row["id"]: row for row in items},
+        {row["id"]: row for row in actions["actions"]},
+    )
     return (
         len(items), len(verified), len(effects["effects"]),
         action_count, verified_action_count, mechanic_count,
+        contributor_count, equipment_evidence_count, mechanics_evidence_count,
     )
 
 
@@ -654,6 +850,7 @@ def main() -> int:
         (
             item_count, verified_count, effect_count,
             action_count, verified_action_count, mechanic_count,
+            contributor_count, equipment_evidence_count, mechanics_evidence_count,
         ) = validate_data()
         lua_count = validate_runtime()
         texlua = shutil.which("texlua")
@@ -674,6 +871,9 @@ def main() -> int:
         f"{effect_count} effects, {action_count} action rows, "
         f"{verified_action_count} verified runtime actions, "
         f"{mechanic_count} qualitative mechanics rows, "
+        f"{equipment_evidence_count} gear evidence sets, "
+        f"{mechanics_evidence_count} mechanics evidence sets, "
+        f"{contributor_count} contributor records, "
         f"{lua_count} runtime Lua files."
     )
     return 0

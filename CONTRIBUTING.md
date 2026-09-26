@@ -22,6 +22,13 @@ Qualitative evidence cannot contain a coefficient, multiplier, weight, or
 formula. Unknown outcomes must have no asserted drivers. Include every source ID
 needed to support the relationship and regenerate `data/mechanics.lua`.
 
+Unverified community research belongs in the candidate evidence registries,
+never directly in runtime data. Give each submission a unique evidence ID,
+source chain, contributor chain, confidence level, review date, and scope note.
+Conflicting claims are both retained until field-level review resolves them.
+Individual public credit is opt-in; do not add private Discord identifiers,
+message archives, or contact information to the repository.
+
 Runtime changes must preserve the read-only guarantee until the project owner and
 HorizonXI reviewers explicitly approve an equipment-execution phase.
 

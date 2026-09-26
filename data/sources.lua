@@ -132,6 +132,14 @@ local data = {
             ["scope"] = "Legacy duplicate spell table retained only for conflict and exclusion review; page is marked for deletion as not consistently updated",
             ["accessed"] = "2026-09-25",
         },
+        {
+            ["id"] = "S017",
+            ["type"] = "User project evidence",
+            ["title"] = "BLU_L60_CHAIN_BURST_REWORK.lua",
+            ["url"] = nil,
+            ["scope"] = "Recovered Chat 1 BLU multiplier records, gear-stat comments, and action-routing evidence; candidate evidence only",
+            ["accessed"] = "2026-09-25",
+        },
     },
 };
 
