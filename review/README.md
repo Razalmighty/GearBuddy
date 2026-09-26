@@ -26,7 +26,7 @@ items, intercept actions, inject packets, or modify LuAshitacast.
 - [Data policy](../docs/DATA_POLICY.md)
 - [Evidence ledger](../docs/EVIDENCE_LEDGER.md)
 - [Full approval test plan](../docs/APPROVAL_TEST_PLAN.md)
-- [Source code](../GearBuddy.lua)
+- [Source code](../gearbuddy.lua)
 - [License](../LICENSE)
 
 The installable ZIP should be taken from a tagged GitHub Release or its matching
