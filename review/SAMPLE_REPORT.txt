@@ -1,0 +1,33 @@
+GEARBUDDY 0.1.0-alpha.8 IN-GAME APPROVAL EVIDENCE
+STATUS: PENDING REAL TEST OUTPUT
+
+This file is intentionally a placeholder. Before a formal moderator request,
+replace the sections below with unaltered output captured from the exact tagged
+release under review. Do not include a raw inventory dump or private account
+information.
+
+Test context
+------------
+Release tag/commit: PENDING
+Ashita version: PENDING
+Zone: PENDING
+Job and level: PENDING
+Level sync: PENDING
+Enabled inventory bags: PENDING
+Capture date: PENDING
+
+/gb selftest verbose
+--------------------
+PENDING
+
+/gb report
+----------
+PENDING
+
+Relevant /gb diag lines
+-----------------------
+PENDING
+
+Reviewer notes
+--------------
+PENDING

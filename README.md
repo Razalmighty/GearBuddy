@@ -143,6 +143,7 @@ Opening a dropdown does not rescan bags.
 
 ## Reviewer documents
 
+- [Moderator review packet](review/README.md)
 - [Runtime behavior](docs/BEHAVIOR.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Data and hidden-effect policy](docs/DATA_POLICY.md)
